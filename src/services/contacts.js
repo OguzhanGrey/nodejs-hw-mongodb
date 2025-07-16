@@ -1,24 +1,42 @@
-import { Contact } from '../db/contacts.js';
+import { Contact } from '../db/models/contacts.js';
 
 export const getAllContacts = async () => {
-  try {
-    const contacts = await Contact.find();
-    return contacts;
-  } catch (error) {
-    console.error('Error fetching contacts:', error);
-    throw new Error('Could not fetch contacts');
-  }
+  const contacts = await Contact.find();
+  return contacts;
 };
 
-export const getContactById = async (id) => {
-  try {
-    const contact = await Contact.findById(id);
-    if (!contact) {
-      throw new Error('Contact not found');
-    }
-    return contact;
-  } catch (error) {
-    console.error(`Error fetching contact with ID ${id}:`, error);
-    throw new Error('Could not fetch contact');
+export const getContactById = async (contactId) => {
+  const contact = await Contact.findOne({ _id: contactId });
+  return contact;
+};
+
+export const createContact = async (contactData) => {
+  const newContact = await Contact.create(contactData);
+  return newContact;
+};
+
+export const deleteContact = async (contactId) => {
+  const deletedContact = await Contact.findByIdAndDelete(contactId);
+  return deletedContact;
+};
+
+export const updateContact = async (contactId, contactData, options = {}) => {
+  const rawResult = await Contact.findByIdAndUpdate(
+    { _id: contactId },
+    contactData,
+    {
+      new: true,
+      includeResultMetadata: true,
+      ...options,
+    },
+  );
+
+  if (!rawResult) {
+    return null;
   }
+
+  return {
+    contact: rawResult.value,
+    isNew: Boolean(rawResult.lastErrorObject?.upserted),
+  };
 };

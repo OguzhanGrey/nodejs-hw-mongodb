@@ -11,7 +11,7 @@ export const getAllContacts = async ({
 }) => {
   const skip = (page - 1) * perPage;
   const limit = perPage;
-  const contactsQuery = Contact.find();
+  const contactsQuery = Contact.find({ userId: filter.userId });
 
   if (filter.contactType) {
     contactsQuery.where('contactType').equals(filter.contactType);
@@ -22,7 +22,9 @@ export const getAllContacts = async ({
   }
 
   const [contactsCount, contacts] = await Promise.all([
-    Contact.find().merge(contactsQuery).countDocuments(),
+    Contact.find({ userId: filter.userId })
+      .merge(contactsQuery)
+      .countDocuments(),
     contactsQuery
       .skip(skip)
       .limit(limit)
@@ -38,8 +40,8 @@ export const getAllContacts = async ({
   };
 };
 
-export const getContactById = async (contactId) => {
-  const contact = await Contact.findOne({ _id: contactId });
+export const getContactById = async (contactId, userId) => {
+  const contact = await Contact.findOne({ _id: contactId, userId });
   return contact;
 };
 
@@ -48,18 +50,25 @@ export const createContact = async (contactData) => {
   return newContact;
 };
 
-export const deleteContact = async (contactId) => {
-  const deletedContact = await Contact.findByIdAndDelete(contactId);
+export const deleteContact = async (contactId, userId) => {
+  const deletedContact = await Contact.findOneAndDelete({
+    _id: contactId,
+    userId,
+  });
   return deletedContact;
 };
 
-export const updateContact = async (contactId, contactData, options = {}) => {
-  const rawResult = await Contact.findByIdAndUpdate(
-    { _id: contactId },
+export const updateContact = async (
+  contactId,
+  contactData,
+  userId,
+  options = {},
+) => {
+  const rawResult = await Contact.findOneAndUpdate(
+    { _id: contactId, userId },
     contactData,
     {
       new: true,
-      includeResultMetadata: true,
       ...options,
     },
   );
@@ -69,7 +78,7 @@ export const updateContact = async (contactId, contactData, options = {}) => {
   }
 
   return {
-    contact: rawResult.value,
-    isNew: Boolean(rawResult.lastErrorObject?.upserted),
+    contact: rawResult,
+    isNew: false, // findOneAndUpdate ile upsert true ise yeni oluşturulmuş olabilir, ama burada basitçe false bırakıyoruz
   };
 };
